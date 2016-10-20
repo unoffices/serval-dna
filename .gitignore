@@ -10,6 +10,8 @@
 *.a
 *.suo
 .*.sw?
+*.swiftdoc
+*.swiftmodule
 /VERSION.txt
 /configure
 /autom4te.cache
@@ -21,6 +23,7 @@
 /config.h
 /servald
 /servaldwrap
+/servaldswift
 /serval-tests
 /directory_service
 /tfw_createfile

@@ -217,6 +217,36 @@ using the [homebrew][] package manager:
     /usr/local/Cellar/jq/1.5_2: 18 files, 958K
     $
 
+Java
+----
+
+The Serval DNA *libservaldeamon* static and dynamic libraries provide a [JNI][]
+API so that the Serval [command line][CLI] can be called from Java programs,
+and the daemon server can be run in a Java thread.
+
+Swift
+-----
+
+Serval DNA provides APIs for the [Swift][] language, which is the language that
+Apple recommend for developing iOS apps for their mobile devices such as phones
+and tablets.  Only [Swift 3][] and [Swift 4][] are supported.
+
+The Serval DNA `make` command creates a [Swift module][] in
+*servald.swiftmodule*.  This module exposes all the Serval DNA daemon header
+files available to [Swift][] programs, which can be linked with the
+*libservaldaemon* static or dynamic library.  For example, the
+`servald_main(argc, argv)` entry point allows a Swift program to invoke the
+Serval [command line][CLI] directly; a typical use could be for an app to run
+the Serval daemon by invoking the CLI `start foreground` command within a
+thread created using Swift code.
+
+The default GNU linker (based on the BFD library) does not support relocation
+of some symbols produced by the Swift compiler, so the Serval DNA dynamic
+library is linked using the GNU [gold][] linker instead (available in GNU
+binutils since 2008).  The following error message is from the BFD linker:
+
+    relocation R_X86_64_PC32 against protected symbol `_Tv7servald14log_level_warnVs5Int32' can not be used when making a shared object
+
 About the examples
 ------------------
 
@@ -262,4 +292,11 @@ Available under the [Creative Commons Attribution 4.0 International licence][CC 
 [OS X awk(1)]: https://developer.apple.com/library/mac/documentation/Darwin/Reference/ManPages/man1/awk.1.html
 [jq(1)]: https://stedolan.github.io/jq/
 [homebrew]: http://brew.sh/
+[CLI]: ./CLI-API.md
+[JNI]: http://en.wikipedia.org/wiki/Java_Native_Interface
+[Swift]: https://en.wikipedia.org/wiki/Swift_(programming_language)
+[Swift module]: https://swift.org/package-manager/#modules
+[Swift 3]: https://swift.org/blog/swift-3-0-released/
+[Swift 4]: https://swift.org/blog/swift-4-0-released/
+[gold]: https://en.wikipedia.org/wiki/Gold_(linker)
 [Bourne shell]: http://en.wikipedia.org/wiki/Bourne_shell

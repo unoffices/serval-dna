@@ -39,6 +39,15 @@ SERVAL_DAEMON_OBJS += $(SERVAL_DAEMON_JNI_OBJS)
 
 endif
 
+ifneq ($(SWIFTC),)
+
+SERVAL_DAEMON_SWIFT_OBJS = \
+	$(addprefix $(OBJSDIR_SERVALD)/, $(SERVAL_DAEMON_SWIFT_SOURCES:.swift=.o))
+
+SERVAL_DAEMON_OBJS += $(SERVAL_DAEMON_SWIFT_OBJS)
+
+endif
+
 SQLITE3_OBJS = \
 	$(addprefix $(OBJSDIR_SERVALD)/, $(notdir $(SQLITE3_SOURCES:.c=.o)))
 
@@ -85,15 +94,26 @@ CFLAGS_SQLITE= @CFLAGS_SQLITE@
 
 JAVAC= 		@JAVAC@
 
+SWIFTC= 		@SWIFTC@
+SWIFTCFLAGS= 		@SWIFTCFLAGS@ -I. -I $(srcdir)
+SWIFTLIBS=		@LIBS@
+SWIFT_MODULE_NAME=	servald
+
 INSTALL=        install
 INSTALL_PROGRAM=$(INSTALL)
 INSTALL_DATA=   $(INSTALL) -m 644
 
 -include $(srcdir)/Makefile.dbg
 
-DEFS= @DEFS@
+# More warnings, discover problems that only happen on some archs
+CFLAGS+=-Wextra
+# Security enhancements from Debian
+CFLAGS+=-Wformat -Werror=format-security -D_FORTIFY_SOURCE=2
 
-CONFIG_H = @CONFIG_H@
+CONFIG_H =	@CONFIG_H@
+
+DEFS=		@DEFS@
+SWIFTDEFS=	$(addprefix -Xcc , $(DEFS))
 
 # Usage: $(call MERGE_STATIC_LIBS, libdest.a, libsrcfoo.a libsrcbar.a)
 MERGE_STATIC_LIBS =	echo MERGE $(1) = $(2); \
@@ -105,13 +125,15 @@ MERGE_STATIC_LIBS =	echo MERGE $(1) = $(2); \
 
 .PHONY: all libs test install uninstall clean
 
-all:	libs servald servaldwrap test
+all:	libs servald directory_service test
 
-libs:	libservaldaemon.so \
+libs:	libservaldaemon.so libservaldaemon.a \
 	libservalclient.so libservalclient.a \
 	libmonitorclient.so libmonitorclient.a
 
-test:   tfw_createfile directory_service fakeradio simulator serval-tests
+test:   servaldwrap serval-tests \
+	fakeradio simulator \
+	tfw_createfile
 
 install: servald
 	$(INSTALL_PROGRAM) -D servald $(DESTDIR)$(sbindir)/servald
@@ -128,6 +150,8 @@ clean:
 		 libservalclient.so libservalclient.a \
 		 libmonitorclient.so libmonitorclient.a \
 		 tfw_createfile directory_service fakeradio simulator serval-tests \
+		 $(SWIFT_MODULE_NAME).swiftmodule \
+		 $(SWIFT_MODULE_NAME).swiftdoc \
 		 tags
 
 # Only provide Java targets if the Java compiler is available.
@@ -147,6 +171,17 @@ java-api-clean:
 	@cd java-api 2>/dev/null && $(MAKE) clean
 
 endif # $(JAVAC)
+
+# Only provide Swift targets if the Swift compiler is available.
+ifneq ($(SWIFTC),)
+
+all:	swiftmodule
+
+test:	servaldswift
+
+swiftmodule:	$(SWIFT_MODULE_NAME).swiftmodule
+
+endif # SWIFTC
 
 # Build the Sodium elliptic curve encryption library within its 'libsodium'
 # subtree, and install its development files (headers and libraries) into our
@@ -277,6 +312,20 @@ $(OBJSDIR_LIB)/%.o: $(srcdir)/%.c
 	@$(RM) $(@:.o=.gcno) $(@:.o=.gcda)
 	@$(CC) $(CFLAGS) $(DEFS) -c $< -o $@
 
+ifneq ($(SWIFTC),)
+
+$(OBJSDIR_SERVALD)/%.o: $(srcdir)/%.swift
+	@echo SERVALD SWIFT $<
+	@mkdir -p $(dir $@)
+	@$(RM) $@
+	@$(SWIFTC) -emit-library -emit-object -module-name $(SWIFT_MODULE_NAME) $(SWIFTCFLAGS) $(SWIFTDEFS) $< -o $@
+
+$(SWIFT_MODULE_NAME).swiftmodule: $(addprefix $(srcdir)/, $(SERVAL_DAEMON_SWIFT_SOURCES))
+	@echo SWIFT MODULE $@
+	@$(SWIFTC) -emit-module -module-name $(@:.swiftmodule=) $(SWIFTCFLAGS) $(SWIFTDEFS) $^
+
+endif # SWIFTC
+
 # Dependencies on header files.  The following list of dependencies is too
 # broad so it sometimes results in unnecessary re-compilation, but that is
 # better than too narrow, which can result in missed re-compilation.
@@ -303,6 +352,7 @@ libservaldaemon.a: _servald.a $(LIBSODIUM_A)
 libservaldaemon.so: \
 		$(OBJSDIR_SERVALD)/servald_features.o \
 		$(SERVAL_DAEMON_JNI_OBJS) \
+		$(SERVAL_DAEMON_SWIFT_OBJS) \
 		_servald.a \
 		$(LIBSODIUM_A)
 	@echo LINK $@
@@ -335,6 +385,14 @@ fakeradio: $(OBJSDIR_TOOLS)/fakeradio.o libservalclient.a
 simulator: $(SIMULATOR_OBJS) libservalclient.a
 	@echo LINK $@
 	@$(CC) -Wall -o $@ $^ $(LDFLAGS)
+
+ifneq ($(SWIFTC),)
+
+servaldswift: $(srcdir)/swift_servald.swift $(OBJSDIR_SERVALD)/servald_features.o libservaldaemon.a
+	@echo SWIFT $@
+	@$(SWIFTC) -emit-executable $(SWIFTCFLAGS) $(SWIFTDEFS) -o $@ $^ $(SWIFTLIBS)
+
+endif # SWIFTC
 
 .INTERMEDIATE: _servalclient.a
 _servalclient.a: $(LIB_SERVAL_OBJS) $(OBJSDIR_TOOLS)/version.o

@@ -1,5 +1,5 @@
 /*
-Serval DNA main command-line entry point
+Serval DNA module map 
 Copyright (C) 2016 Flinders University
 
 This program is free software; you can redistribute it and/or
@@ -17,9 +17,16 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#include "servald_main.h"
+module serval {
 
-int main(int argc, char **argv)
-{
-  return servald_main(argc, argv);
+    requires tls // thread-local storage
+
+    module log {
+        header "log.h"
+    }
+
+    module main {
+        header "servald_main.h"
+    }
+
 }

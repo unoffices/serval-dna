@@ -129,6 +129,9 @@ SERVAL_DAEMON_JNI_SOURCES = \
 	jni_instance.c \
 	jni_server.c
 
+SERVAL_DAEMON_SWIFT_SOURCES = \
+	swift_log.swift
+
 MDP_CLIENT_SOURCES = \
 	mdp_client.c
 
