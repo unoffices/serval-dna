@@ -157,9 +157,13 @@ result](#keyring-json-result) describes the identity that was removed.
 Sets the [DID](#did) and/or name of the unlocked identity that has the given
 [SID](#serval-id).  The following parameters are recognised:
 
-*   **did**: sets the DID (phone number); must be a string of five or more
+*   **did**: sets the DID (phone number) to a string of five or more
     digits from the set `123456789#0*`
-*   **name**: sets the name; must be non-empty
+*   **name**: sets the name
+
+If a parameter is missing, then the corresponding field of the identity is left
+unchanged.  If a parameter is set to an empty string, then the corresponding
+field of the identity is erased.
 
 If there is no unlocked identity with the given SID, this request returns [404
 Not Found][404].

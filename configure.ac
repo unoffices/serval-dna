@@ -5,6 +5,7 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AC_ARG_VAR([SWIFTC], [Swift compiler])
 AC_ARG_VAR([SWIFTCFLAGS], [Swift compiler flags])
+AC_ARG_VAR([SWIFTC_TARGET], [Swift compiler build target, eg, armv7-apple-iphoneos10.1])
 
 CPPFLAGS="$CPPFLAGS -D_GNU_SOURCE"
 
@@ -46,6 +47,38 @@ dnl Check for a Swift 3 or 4 compiler; set SWIFTC if found.
 AC_PROG_SWIFTC
 
 AS_IF([test "x$SWIFTC" != x], [ dnl
+    dnl If the caller has not supplied a Swift target, then discover the Swift compiler's target
+    dnl (which could be set by a -target option in $SWIFTCFLAGS) and ensure that it is adequate
+    dnl for building a Swift package on Mac OS-X.  (Swift packages were not supported before version
+    dnl 10.10).
+    AS_IF([test "x$SWIFTC_TARGET" = x], [ dnl
+        AC_PROG_SWIFTC_DEFAULT_TARGET
+        AS_IF([test "x$SWIFTC_DEFAULT_TARGET_OS" = xapple-macosx], [ dnl
+            AS_VERSION_COMPARE([$SWIFTC_DEFAULT_TARGET_MAJOR.$SWIFTC_DEFAULT_TARGET_MINOR], [10.10], [ dnl
+                SWIFTC_TARGET="$SWIFTC_DEFAULT_TARGET_ARCH-${SWIFTC_DEFAULT_TARGET_OS}10.10"
+            ])
+        ])
+    ])
+
+    dnl If a Swift compilation target is specified by $SWIFTC_TARGET, then prepend the -target option to
+    dnl SWIFTCFLAGS (if the user has already supplied a -target option in SWIFTCFLAGS, then this prepended
+    dnl one will take precedence).
+    AC_MSG_CHECKING([Swift compilation target])
+    AS_IF([test "x$SWIFTC_TARGET" != x], [
+        SWIFTCFLAGS="-target $SWIFTC_TARGET $SWIFTCFLAGS"
+        AC_MSG_RESULT([$SWIFTC_TARGET])
+    ], [ dnl
+        AC_MSG_RESULT([$SWIFTC_DEFAULT_TARGET (default)])
+    ])
+
+    dnl If building for Mac OS-X, then make sure all the C source files are compiled with a consistent
+    dnl target, to avoid warnings about inconsistent OSX versions at link time, eg:
+    dnl ld: warning: object file (libservaldaemon.a(libsodium_la-crypto_sign.o)) was built for newer OSX version (10.12) than being linked (10.10)
+    SWIFTC_TARGET_MACOSX=`echo "$SWIFTC_TARGET" | sed -n -e ['s/^[^-]*-apple-macosx\([0-9]\)/\1/p']`
+    AS_IF([test "x$SWIFTC_TARGET_MACOSX" != x], [ dnl
+        AX_APPEND_COMPILE_FLAGS([-mmacosx-version-min=$SWIFTC_TARGET_MACOSX], [MACOSXCFLAGS], [-Werror])
+    ])
+
     dnl Check whether the Swift compiler will compile a simple Swift 4 program with the supplied flags.
     dnl If not, report failure but keep going.
     AC_PROG_SWIFTC_IS_SWIFT4
@@ -59,9 +92,16 @@ AS_IF([test "x$SWIFTC" != x], [ dnl
     ])
 ])
 
+dnl Check for a working Swift package manager, keep going if unsuccessful.
+AS_IF([test "x$SWIFTC" != x && test "x$SWIFT_BUILD" = x], [
+    AC_PROG_SWIFT_PACKAGE_MANAGER
+])
+
 AC_SUBST([SWIFTC])
 AC_SUBST([SWIFTCFLAGS])
+AC_SUBST([MACOSXCFLAGS])
 AC_SUBST([SWIFT_VERSION])
+AC_SUBST([SWIFT_BUILD])
 
 dnl Various GCC function and variable attributes
 AX_GCC_FUNC_ATTRIBUTE(aligned)
@@ -133,6 +173,12 @@ AS_IF([test -n "$JAVAC"], [ dnl
     popdef([AC_MSG_ERROR])
 ])
 
+dnl Check for a working Swift package manager, keep going if unsuccessful.
+AS_IF([test -n "$SWIFTC"], [
+    AC_PROG_SWIFT_PACKAGE_MANAGER
+    AC_SUBST([SWIFT_BUILD])
+])
+
 dnl XXX Isn't this pointless? we are always linked against libc
 AC_CHECK_LIB(c,srandomdev)
 
@@ -148,7 +194,7 @@ AC_CHECK_TYPES([off64_t], [have_off64_t=1], [have_off64_t=0])
 AC_CHECK_SIZEOF([off_t])
 
 dnl There must be a 64-bit seek(2) system call of some kind
-AS_IF([test "x$have_lseek64_t" = "xno" -a "x$ac_cv_sizeof_off_t" != x8 ], [
+AS_IF([test "x$have_lseek64_t" = "xno" && test "x$ac_cv_sizeof_off_t" != x8 ], [
     AC_MSG_ERROR([Missing lseek64(2) system call])
 ])
 
@@ -278,4 +324,5 @@ AC_OUTPUT([
     Makefile
     testconfig.sh
     java-api/Makefile
+    swift-api/Makefile
 ])

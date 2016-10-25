@@ -1605,6 +1605,10 @@ int keyring_commit(keyring_file *k)
 
 int keyring_set_did(keyring_identity *id, const char *did, const char *name)
 {
+  /* Do nothing if not changing either field. */
+  if (!did && !name)
+    return 0;
+
   /* Find where to put it */
   keypair *kp = id->keypairs;
   while(kp){
@@ -1621,24 +1625,31 @@ int keyring_set_did(keyring_identity *id, const char *did, const char *name)
       return -1;
     keyring_identity_add_keypair(id, kp);
     DEBUG(keyring, "Created DID record for identity");
+    bzero(kp->private_key, kp->private_key_len);
+    bzero(kp->public_key, kp->public_key_len);
   }
 
   /* Store DID unpacked for ease of searching */
-  size_t len=strlen(did);
-  if (len>31)
-    len=31;
-  bcopy(did,&kp->private_key[0],len);
-  bzero(&kp->private_key[len],32-len);
-  len=strlen(name);
-  if (len>63)
-    len=63;
-  bcopy(name,&kp->public_key[0],len);
-  bzero(&kp->public_key[len],64-len);
-
-  if (IF_DEBUG(keyring)) {
-    dump("{keyring} storing did",&kp->private_key[0],32);
-    dump("{keyring} storing name",&kp->public_key[0],64);
+  if (did) {
+    size_t len = strlen(did);
+    if (len >= kp->private_key_len)
+      len = kp->private_key_len - 1;
+    bcopy(did, &kp->private_key[0], len);
+    bzero(&kp->private_key[len], kp->private_key_len - len);
+    if (IF_DEBUG(keyring))
+      dump("{keyring} storing did",&kp->private_key[0], kp->private_key_len);
   }
+    
+  if (name) {
+    size_t len = strlen(name);
+    if (len >= kp->public_key_len)
+      len = kp->public_key_len - 1;
+    bcopy(name, &kp->public_key[0], len);
+    bzero(&kp->public_key[len], kp->public_key_len - len);
+    if (IF_DEBUG(keyring))
+      dump("{keyring} storing name", &kp->public_key[0], kp->public_key_len);
+  }
+
   return 0;
 }
 

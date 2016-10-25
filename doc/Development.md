@@ -231,14 +231,20 @@ Serval DNA provides APIs for the [Swift][] language, which is the language that
 Apple recommend for developing iOS apps for their mobile devices such as phones
 and tablets.  Only [Swift 3][] and [Swift 4][] are supported.
 
-The Serval DNA `make` command creates a [Swift module][] in
-*servald.swiftmodule*.  This module exposes all the Serval DNA daemon header
-files available to [Swift][] programs, which can be linked with the
-*libservaldaemon* static or dynamic library.  For example, the
-`servald_main(argc, argv)` entry point allows a Swift program to invoke the
-Serval [command line][CLI] directly; a typical use could be for an app to run
-the Serval daemon by invoking the CLI `start foreground` command within a
-thread created using Swift code.
+1. The Serval DNA `make` command creates a [Swift module][] in
+   *servald.swiftmodule*.  This module exposes all the Serval DNA daemon header
+   files available to [Swift][] programs, which can be linked with the
+   *libservaldaemon* static or dynamic library.  For example, the
+   `servald_main(argc, argv)` entry point allows a Swift program to invoke the
+   Serval [command line][CLI] directly; a typical use could be for an app to
+   run the Serval daemon by invoking the CLI `start foreground` command within
+   a thread created using Swift code.
+
+2. The Serval DNA `make` command creates a client API [Swift package][],
+   written entirely in [Swift][], that provides access to the services of the
+   Serval DNA daemon through its REST API.  Once an app has the Serval daemon
+   running in one of its own threads (see point 1 above), its other threads may
+   use this API to communicate with that daemon thread.
 
 The default GNU linker (based on the BFD library) does not support relocation
 of some symbols produced by the Swift compiler, so the Serval DNA dynamic
@@ -296,6 +302,7 @@ Available under the [Creative Commons Attribution 4.0 International licence][CC 
 [JNI]: http://en.wikipedia.org/wiki/Java_Native_Interface
 [Swift]: https://en.wikipedia.org/wiki/Swift_(programming_language)
 [Swift module]: https://swift.org/package-manager/#modules
+[Swift package]: https://swift.org/package-manager/#packages
 [Swift 3]: https://swift.org/blog/swift-3-0-released/
 [Swift 4]: https://swift.org/blog/swift-4-0-released/
 [gold]: https://en.wikipedia.org/wiki/Gold_(linker)

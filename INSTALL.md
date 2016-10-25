@@ -150,6 +150,14 @@ A successful session should appear something like:
     Note: Some input files use or override a deprecated API.
     Note: Recompile with -Xlint:deprecation for details.
     make[1]: Leaving directory '/home/username/src/serval-dna/java-api'
+    SWIFT MODULE servald.swiftmodule
+    cd swift-api && make SOURCE_PREFIX= all
+    make[1]: Entering directory '/home/username/src/serval-dna/swift-api'
+    swift build --package-path package
+    Compile Swift Module 'ServalClient' (5 sources)
+    Archiving /home/username/src/serval-dna/swift-api/package/.build/x86_64-unknown-linux/debug/libServalClient.a
+    SWIFT test-swift
+    make[1]: Leaving directory '/home/username/src/serval-dna/swift-api'
     rm _servalclient.a _monitorclient.a _servald.a
     $
 

@@ -1,4 +1,4 @@
-# Makefile.in for Serval DNA
+# Makefile.in for Serval DNA daemon and libraries
 # vim: noet ts=8 sts=0 sw=8
 prefix=@prefix@
 exec_prefix=@exec_prefix@
@@ -85,6 +85,7 @@ CFLAGS+=-DSQLITE_THREADSAFE=0 \
 	-DSQLITE_OMIT_VIRTUALTABLE \
 	-DSQLITE_OMIT_AUTHORIZATION
 CFLAGS+=-fPIC -DSERVAL_ENABLE_DEBUG=1 -Wall -Werror -Wextra -Wformat -Werror=format-security -D_FORTIFY_SOURCE=2
+CFLAGS+=@MACOSXCFLAGS@
 
 # Solaris magic
 CFLAGS+=-DSHA2_USE_INTTYPES_H -D_XOPEN_SOURCE=600 -D_XOPEN_SOURCE_EXTENDED=1 -D__EXTENSIONS__=1
@@ -175,13 +176,24 @@ endif # $(JAVAC)
 # Only provide Swift targets if the Swift compiler is available.
 ifneq ($(SWIFTC),)
 
-all:	swiftmodule
+all:	swiftmodule swift-api
 
 test:	servaldswift
 
+clean:	swift-api-clean
+
+.PHONY: swiftmodule swift-api swift-api-clean
+
 swiftmodule:	$(SWIFT_MODULE_NAME).swiftmodule
 
-endif # SWIFTC
+swift-api:
+	@mkdir -p swift-api
+	cd swift-api && $(MAKE) all
+
+swift-api-clean:
+	cd swift-api 2>/dev/null && $(MAKE) clean
+
+endif # $(SWIFTC)
 
 # Build the Sodium elliptic curve encryption library within its 'libsodium'
 # subtree, and install its development files (headers and libraries) into our
@@ -206,7 +218,11 @@ $(LIBSODIUM_DEV)/.installed:
 	@mkdir -p $(LIBSODIUM_DEV)
 	@$(RM) $@
 	@touch $@.in-progress
-	@cd $(LIBSODIUM_SUBDIR) && $(MAKE) CFLAGS+=-prefer-pic prefix=$(abspath $(LIBSODIUM_DEV)) install
+	@cd $(LIBSODIUM_SUBDIR) && $(MAKE) \
+	    CFLAGS+="-prefer-pic @MACOSXCFLAGS@" \
+	    CCASFLAGS+="@MACOSXCFLAGS@" \
+	    prefix=$(abspath $(LIBSODIUM_DEV)) \
+	    install
 	@mv -f $@.in-progress $@
 
 # Source code test coverage support -- see doc/Testing.md

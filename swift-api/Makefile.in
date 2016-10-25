@@ -1,0 +1,53 @@
+# Makefile.in for Serval DNA Swift 3 API
+# vim: noet ts=8 sts=0 sw=8
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+sbindir=@sbindir@
+sysconfdir=@sysconfdir@
+localstatedir=@localstatedir@
+srcdir=@srcdir@
+abs_builddir=@abs_builddir@
+
+SWIFT_MODULE_NAME=	ServalClient
+SWIFT_PACKAGE_DIR=	$(srcdir)/package
+SWIFT_BUILD_DIR=	$(abs_builddir)/build
+
+SWIFTC= 		@SWIFTC@
+SWIFTCFLAGS= 		@SWIFTCFLAGS@
+SWIFTCFLAGS+=		-I $(srcdir)
+SWIFT_BUILD= 		@SWIFT_BUILD@
+
+DEFS=			@DEFS@
+SWIFTDEFS=		$(addprefix -Xcc , $(DEFS))
+
+.PHONY: all checkswift check_swiftc check_swift_build swiftmodule clean
+
+all:	checkswift swiftmodule test-swift
+
+checkswift: check_swiftc check_swift_build
+
+check_swiftc:
+	@if [ -z "$(SWIFTC)" ]; then echo "No swift compiler configured" >&2; exit 1; fi
+	@if ! $(SWIFTC) -version >/dev/null; then echo "Swift compiler not executable" >&2; exit 1; fi
+
+check_swift_build:
+	@if [ -z "$(SWIFT_BUILD)" ]; then echo "No swift package manager configured" >&2; exit 1; fi
+	@if ! $(SWIFT_BUILD) -h >/dev/null; then echo "Swift package manager not executable" >&2; exit 1; fi
+
+# The --package-path option was added in Swift 4, so to also support Swift
+# 3, use use "cd package-dir && swift build", which works for both.
+swiftmodule:
+	mkdir -p $(SWIFT_BUILD_DIR) && \
+		cd $(SWIFT_PACKAGE_DIR) && \
+		$(SWIFT_BUILD) --build-path $(SWIFT_BUILD_DIR)
+
+$(SWIFT_BUILD_DIR)/debug/libServalClient.a: swiftmodule
+
+test-swift: $(srcdir)/test.swift $(SWIFT_BUILD_DIR)/debug/libServalClient.a
+	@echo SWIFT $@
+	@$(SWIFTC) -emit-executable $(SWIFTCFLAGS) $(SWIFTDEFS) -I $(SWIFT_BUILD_DIR)/debug -o $@ $^
+
+clean:
+	@$(RM) -r $(SWIFT_BUILD_DIR)
+	@$(RM) test-swift
