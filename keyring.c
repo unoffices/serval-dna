@@ -1249,10 +1249,8 @@ static int keyring_decrypt_pkr(keyring_file *k, const char *pin, int slot_number
   /* compare hash to record */
   if (memcmp(hash, &slot[PKR_SALT_BYTES], crypto_hash_sha512_BYTES)) {
     DEBUGF(keyring, "slot %u is not valid (MAC mismatch)", slot_number);
-    if (IF_DEBUG(keyring)){
-      dump("computed",hash,crypto_hash_sha512_BYTES);
-      dump("stored",&slot[PKR_SALT_BYTES],crypto_hash_sha512_BYTES);
-    }
+    DEBUG_dump(keyring, "computed",hash,crypto_hash_sha512_BYTES);
+    DEBUG_dump(keyring, "stored",&slot[PKR_SALT_BYTES],crypto_hash_sha512_BYTES);
     goto kdp_safeexit;
   }
 
@@ -1635,10 +1633,8 @@ int keyring_set_did(keyring_identity *id, const char *did, const char *name)
   bcopy(name,&kp->public_key[0],len);
   bzero(&kp->public_key[len],64-len);
 
-  if (IF_DEBUG(keyring)) {
-    dump("{keyring} storing did",&kp->private_key[0],32);
-    dump("{keyring} storing name",&kp->public_key[0],64);
-  }
+  DEBUG_dump(keyring, "storing did",&kp->private_key[0],32);
+  DEBUG_dump(keyring, "storing name",&kp->public_key[0],64);
   return 0;
 }
 
@@ -1718,8 +1714,7 @@ int keyring_set_public_tag(keyring_identity *id, const char *name, const unsigne
   if (keyring_pack_tag(kp->public_key, &kp->public_key_len, name, value, length))
     return -1;
   
-  if (IF_DEBUG(keyring))
-    dump("{keyring} New tag", kp->public_key, kp->public_key_len);
+  DEBUG_dump(keyring, "New tag", kp->public_key, kp->public_key_len);
   return 0;
 }
 
