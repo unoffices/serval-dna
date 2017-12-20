@@ -677,7 +677,7 @@ static void lookup_send_request(int mdp_sockfd, const sid_t *srcsid, int srcport
   bcopy(did,&mdp.out.payload[0],strlen(did)+1);
   mdp.out.payload_length=strlen(did)+1;
 
-  DEBUGF(mdprequests, "Send %s dst.sid=%s dst.port="PRImdp_port_t" payload_length=%u",
+  DEBUGF(mdprequests, "Send %s dst.sid=%s dst.port=%"PRImdp_port_t" payload_length=%u",
       desc,
       alloca_tohex_sid_t(mdp.out.dst.sid),
       mdp.out.dst.port,
@@ -689,7 +689,7 @@ static void lookup_send_request(int mdp_sockfd, const sid_t *srcsid, int srcport
     if (!is_sid_t_any(config.directory.service)) {
       mdp.out.dst.sid = config.directory.service;
       mdp.packetTypeAndFlags=MDP_TX;
-      DEBUGF(mdprequests, "Send MDP_TX dst.sid=%s dst.port="PRImdp_port_t" payload_length=%u",
+      DEBUGF(mdprequests, "Send MDP_TX dst.sid=%s dst.port=%"PRImdp_port_t" payload_length=%u",
 	  alloca_tohex_sid_t(mdp.out.dst.sid),
 	  mdp.out.dst.port,
 	  mdp.out.payload_length);
@@ -787,7 +787,7 @@ static int app_dna_lookup(const struct cli_parsed *parsed, struct cli_context *c
 	    if (strlen((char *)rx.out.payload)<512) {
 	      char sidhex[SID_STRLEN + 1];
 	      char did[DID_MAXSIZE + 1];
-	      char name[64];
+	      char name[ID_NAME_MAXSIZE + 1];
 	      char uri[512];
 	      if ( !parseDnaReply((char *)rx.out.payload, rx.out.payload_length, sidhex, did, name, uri, NULL)
 		|| !str_is_subscriber_id(sidhex)
